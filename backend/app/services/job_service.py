@@ -36,7 +36,7 @@ class JobService:
         self.db.add(JobLog(job_id=job.id, level="INFO", message="Job queued for execution", step="QUEUED"))
         await self.db.commit()
 
-        return job
+        return await self.get_job_by_id(job.id)
 
     async def get_jobs(self, limit: int = 50) -> List[GenerationJob]:
         stmt = select(GenerationJob).options(selectinload(GenerationJob.logs)).order_by(desc(GenerationJob.created_at)).limit(limit)

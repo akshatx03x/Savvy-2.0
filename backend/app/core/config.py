@@ -27,14 +27,33 @@ class Settings(BaseSettings):
     # Redis
     REDIS_URL: str = "redis://localhost:6379/0"
 
+    # Security
+    SECRET_KEY: str = "supersecret_dev_key_change_in_production"
+
     # AI Config
+    GEMINI_API_KEY: str = ""
+    GEMINI_MODEL: str = "gemini-1.5-flash"
     OPENAI_API_KEY: str = ""
+    OPENAI_MODEL: str = "gpt-4o-mini"
     AI_MODEL: str = "gpt-4o-mini"
+
+    # Provider API Credentials
+    GOOGLE_MAPS_API_KEY: str = ""
+    YELP_API_KEY: str = ""
+    B2B_DIRECTORY_API_KEY: str = ""
+    OPENSTREETMAP_ENABLED: bool = True
+
+    # Cost Control & Safety Modes
+    # Options for LEAD_COST_MODE & AI_COST_MODE: free_only, free_first
+    LEAD_COST_MODE: str = "free_only"
+    AI_COST_MODE: str = "free_only"
 
     # Synthetic Data Safety Guard
     # Synthetic generator is strictly for local dev/testing when set to True.
-    # Must be False in production!
-    ENABLE_SYNTHETIC_DATA: bool = True
+    # Must be False in production! REAL LEADS ONLY.
+    ENABLE_SYNTHETIC_DATA: bool = False
+
+
 
     model_config = SettingsConfigDict(
         env_file=".env",

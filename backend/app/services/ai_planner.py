@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Optional
+from typing import Optional, Tuple
 from app.schemas.ai import SearchPlanResponse, SearchRequirements
 from app.core.config import settings
 from app.core.logging import logger
@@ -14,24 +14,17 @@ except ImportError:
 class AIPlannerService:
     """
     AI Search Planner Service: Converts natural language prospect requests into
-    structured, validated SearchPlan Response objects.
+    structured, validated SearchPlan Response objects with structured ISO geographic codes.
     """
 
     @staticmethod
     async def analyze_prompt(prompt: str) -> SearchPlanResponse:
-        prompt_lower = prompt.lower().strip()
+        from app.core.ai_provider_manager import ai_provider_manager
+        plan = await ai_provider_manager.analyze_prompt(prompt)
+        if plan:
+            return plan
+        return AIPlannerService._parse_rule_based(prompt, prompt.lower().strip())
 
-        # Try LLM integration if API key is provided
-        if settings.OPENAI_API_KEY and httpx:
-            try:
-                plan = await AIPlannerService._call_llm(prompt)
-                if plan:
-                    return plan
-            except Exception as e:
-                logger.warning(f"LLM call failed, falling back to rule parser: {e}")
-
-        # High-intelligence Rule-Based Parser Fallback
-        return AIPlannerService._parse_rule_based(prompt, prompt_lower)
 
     @staticmethod
     def _parse_rule_based(prompt: str, prompt_lower: str) -> SearchPlanResponse:
@@ -45,50 +38,97 @@ class AIPlannerService:
             except ValueError:
                 pass
 
-        country = "United States"
-        countries_map = {
-            "united states": "United States", "usa": "United States", "us": "United States", "american": "United States",
-            "united kingdom": "United Kingdom", "uk": "United Kingdom", "britain": "United Kingdom", "london": "United Kingdom",
-            "canada": "Canada", "canadian": "Canada",
-            "australia": "Australia", "australian": "Australia",
-            "germany": "Germany", "german": "Germany",
-            "france": "France", "french": "France",
-            "india": "India", "indian": "India",
-            "singapore": "Singapore",
-            "japan": "Japan",
-            "brazil": "Brazil",
+        # City Mapping: (City, Region, RegionCode, Country, CountryCode)
+        cities_map = {
+            "toronto": ("Toronto", "Ontario", "CA-ON", "Canada", "CA"),
+            "vancouver": ("Vancouver", "British Columbia", "CA-BC", "Canada", "CA"),
+            "montreal": ("Montreal", "Quebec", "CA-QC", "Canada", "CA"),
+            "seattle": ("Seattle", "Washington", "US-WA", "United States", "US"),
+            "san francisco": ("San Francisco", "California", "US-CA", "United States", "US"),
+            "los angeles": ("Los Angeles", "California", "US-CA", "United States", "US"),
+            "austin": ("Austin", "Texas", "US-TX", "United States", "US"),
+            "new york": ("New York", "New York", "US-NY", "United States", "US"),
+            "chicago": ("Chicago", "Illinois", "US-IL", "United States", "US"),
+            "miami": ("Miami", "Florida", "US-FL", "United States", "US"),
+            "sydney": ("Sydney", "New South Wales", "AU-NSW", "Australia", "AU"),
+            "melbourne": ("Melbourne", "Victoria", "AU-VIC", "Australia", "AU"),
+            "berlin": ("Berlin", "Berlin", "DE-BE", "Germany", "DE"),
+            "munich": ("Munich", "Bavaria", "DE-BY", "Germany", "DE"),
+            "paris": ("Paris", "Ile-de-France", "FR-IDF", "France", "FR"),
+            "london": ("London", "Greater London", "GB-LND", "United Kingdom", "GB"),
+            "delhi": ("Delhi", "Delhi", "IN-DL", "India", "IN"),
+            "mumbai": ("Mumbai", "Maharashtra", "IN-MH", "India", "IN"),
+            "tokyo": ("Tokyo", "Tokyo", "JP-13", "Japan", "JP"),
         }
-        for k, v in countries_map.items():
-            if k in prompt_lower:
-                country = v
-                break
-
-        region = None
-        regions_map = [
-            "Washington", "California", "Texas", "New York", "Florida",
-            "Illinois", "Pennsylvania", "Ohio", "Georgia", "North Carolina",
-            "Ontario", "Quebec", "British Columbia", "Bavaria", "London"
-        ]
-        for r in regions_map:
-            if r.lower() in prompt_lower:
-                region = r
-                break
 
         city = None
-        cities_map = [
-            "Seattle", "San Francisco", "Los Angeles", "New York", "Chicago",
-            "Miami", "Austin", "Toronto", "Vancouver", "Sydney", "Berlin", "Paris", "Tokyo", "London"
-        ]
-        for c in cities_map:
-            if c.lower() in prompt_lower:
-                city = c
+        region = None
+        region_code = None
+        country = None
+        country_code = None
+
+        for c_key, (c_name, r_name, r_code, ct_name, ct_code) in cities_map.items():
+            if c_key in prompt_lower:
+                city = c_name
+                region = r_name
+                region_code = r_code
+                country = ct_name
+                country_code = ct_code
                 break
+
+        if not country:
+            countries_map = {
+                "canada": ("Canada", "CA"), "canadian": ("Canada", "CA"),
+                "united kingdom": ("United Kingdom", "GB"), "uk": ("United Kingdom", "GB"), "britain": ("United Kingdom", "GB"),
+                "australia": ("Australia", "AU"), "australian": ("Australia", "AU"),
+                "germany": ("Germany", "DE"), "german": ("Germany", "DE"),
+                "france": ("France", "FR"), "french": ("France", "FR"),
+                "india": ("India", "IN"), "indian": ("India", "IN"),
+                "singapore": ("Singapore", "SG"),
+                "japan": ("Japan", "JP"),
+                "brazil": ("Brazil", "BR"),
+                "united states": ("United States", "US"), "usa": ("United States", "US"), "american": ("United States", "US"),
+            }
+            for k, (c_name, c_code) in countries_map.items():
+                if re.search(r"\b" + k + r"\b", prompt_lower):
+                    country = c_name
+                    country_code = c_code
+                    break
+
+        if not country:
+            country = "United States"
+            country_code = "US"
+
+        if not region:
+            regions_map = {
+                "ontario": ("Ontario", "CA-ON"),
+                "quebec": ("Quebec", "CA-QC"),
+                "british columbia": ("British Columbia", "CA-BC"),
+                "california": ("California", "US-CA"),
+                "texas": ("Texas", "US-TX"),
+                "new york": ("New York", "US-NY"),
+                "florida": ("Florida", "US-FL"),
+                "illinois": ("Illinois", "US-IL"),
+                "pennsylvania": ("Pennsylvania", "US-PA"),
+                "ohio": ("Ohio", "US-OH"),
+                "georgia": ("Georgia", "US-GA"),
+                "north carolina": ("North Carolina", "US-NC"),
+                "washington": ("Washington", "US-WA"),
+                "bavaria": ("Bavaria", "DE-BY"),
+            }
+            for k, (r_name, r_code) in regions_map.items():
+                if k in prompt_lower:
+                    region = r_name
+                    region_code = r_code
+                    break
 
         niche = "Business Services"
         niches_map = {
             "real estate": "Real Estate",
             "realty": "Real Estate",
             "broker": "Real Estate",
+            "dentist": "Healthcare & Dental",
+            "dental": "Healthcare & Dental",
             "saas": "Software & Technology",
             "software": "Software & Technology",
             "tech": "Software & Technology",
@@ -123,32 +163,38 @@ class AIPlannerService:
             quality = "basic"
 
         reqs = SearchRequirements(
-            website_required="website" in prompt_lower or "site" in prompt_lower or True,
-            public_email_required="email" in prompt_lower or "contact" in prompt_lower or True,
-            phone_required="phone" in prompt_lower or "call" in prompt_lower or False,
-            social_presence_required="linkedin" in prompt_lower or "social" in prompt_lower or False,
-            active_business_required="active" in prompt_lower or True,
+            website_required="website" in prompt_lower,
+            public_email_required="email" in prompt_lower or "contact" in prompt_lower,
+            phone_required="phone" in prompt_lower,
+            social_presence_required="linkedin" in prompt_lower,
+            active_business_required=True,
         )
 
-        keywords = [word for word in prompt.split() if len(word) > 4 and word.lower() not in ["find", "leads", "business", "businesses", "companies", "in", "with", "active"]]
+
+        keywords = [
+            word for word in prompt.split()
+            if len(word) > 3 and word.lower() not in ["find", "leads", "business", "businesses", "companies", "in", "with", "active"]
+        ]
 
         return SearchPlanResponse(
             niche=niche,
             country=country,
+            country_code=country_code,
             region=region,
+            region_code=region_code,
             city=city,
             quantity=quantity,
             quality=quality,
             requirements=reqs,
             keywords=keywords[:5],
-            confidence_score=0.92,
-            explanation=f"Identified targeting {niche} in {country}" + (f" ({region})" if region else "") + f" requesting {quantity} high-quality prospects.",
+            confidence_score=0.95,
+            explanation=f"Targeting {niche} in {country}" + (f" ({region})" if region else "") + f" requesting {quantity} verified business leads.",
         )
 
     @staticmethod
     async def _call_llm(prompt: str) -> Optional[SearchPlanResponse]:
         system_prompt = (
-            "You are an expert B2B Prospecting Search AI. Analyze the user request and return STRICT JSON matching the SearchPlan schema."
+            "You are an expert B2B Prospecting Search AI. Analyze the user request and return STRICT JSON matching the SearchPlan schema, including ISO country_code and region_code."
         )
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(

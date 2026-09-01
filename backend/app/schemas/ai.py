@@ -3,11 +3,13 @@ from pydantic import BaseModel, Field
 
 
 class SearchRequirements(BaseModel):
-    website_required: bool = True
-    public_email_required: bool = True
+    website_required: bool = False
+    public_email_required: bool = False
     phone_required: bool = False
     social_presence_required: bool = False
     active_business_required: bool = True
+
+RequirementSpec = SearchRequirements
 
 
 class SearchPlanRequest(BaseModel):
@@ -17,8 +19,10 @@ class SearchPlanRequest(BaseModel):
 class SearchPlanResponse(BaseModel):
     niche: str = Field(..., json_schema_extra={"example": "Real Estate"})
     country: str = Field(..., json_schema_extra={"example": "United States"})
-    region: Optional[str] = Field(None, json_schema_extra={"example": "Washington"})
-    city: Optional[str] = Field(None, json_schema_extra={"example": "Seattle"})
+    country_code: Optional[str] = Field(None, json_schema_extra={"example": "US"})
+    region: Optional[str] = Field(None, json_schema_extra={"example": "California"})
+    region_code: Optional[str] = Field(None, json_schema_extra={"example": "US-CA"})
+    city: Optional[str] = Field(None, json_schema_extra={"example": "Los Angeles"})
     quantity: int = Field(100, ge=1, le=5000)
     quality: str = Field("high", json_schema_extra={"example": "high"}) # basic, high, premium
     requirements: SearchRequirements = Field(default_factory=SearchRequirements)

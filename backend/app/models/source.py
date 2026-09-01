@@ -11,7 +11,8 @@ if TYPE_CHECKING:
 class LeadSourceProvenance(Base, TimestampMixin):
     __tablename__ = "lead_source_provenance"
 
-    contact_id: Mapped[str] = mapped_column(String(36), ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    contact_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("contacts.id", ondelete="CASCADE"), nullable=True, index=True)
+    company_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=True, index=True)
     
     source_name: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     source_url: Mapped[Optional[str]] = mapped_column(String(500), nullable=True)

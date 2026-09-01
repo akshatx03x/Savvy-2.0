@@ -2,6 +2,7 @@ from fastapi import APIRouter
 from app.api.v1 import (
     leads,
     countries,
+    locations,
     jobs,
     ai,
     stats,
@@ -15,11 +16,13 @@ from app.api.v1 import (
     suppression,
     deliverability,
     analytics,
+    providers,
 )
 
 api_router = APIRouter()
 api_router.include_router(leads.router)
 api_router.include_router(countries.router)
+api_router.include_router(locations.router)
 api_router.include_router(jobs.router)
 api_router.include_router(ai.router)
 api_router.include_router(stats.router)
@@ -33,3 +36,5 @@ api_router.include_router(campaigns.router)
 api_router.include_router(suppression.router)
 api_router.include_router(deliverability.router)
 api_router.include_router(analytics.router)
+api_router.include_router(providers.router)
+

@@ -14,7 +14,7 @@ class Lead(Base, TimestampMixin):
     __tablename__ = "leads"
 
     company_id: Mapped[str] = mapped_column(String(36), ForeignKey("companies.id", ondelete="CASCADE"), nullable=False, index=True)
-    contact_id: Mapped[str] = mapped_column(String(36), ForeignKey("contacts.id", ondelete="CASCADE"), nullable=False, index=True)
+    contact_id: Mapped[Optional[str]] = mapped_column(String(36), ForeignKey("contacts.id", ondelete="SET NULL"), nullable=True, index=True)
     
     country: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
     region: Mapped[Optional[str]] = mapped_column(String(100), nullable=True, index=True)
@@ -34,8 +34,8 @@ class Lead(Base, TimestampMixin):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
     # Relationships
-    company: Mapped["Company"] = relationship("Company", back_populates="leads")
-    contact: Mapped["Contact"] = relationship("Contact", back_populates="leads")
+    company: Mapped["Company"] = relationship("Company", back_populates="leads", lazy="selectin")
+    contact: Mapped[Optional["Contact"]] = relationship("Contact", back_populates="leads", lazy="selectin")
     generation_job: Mapped[Optional["GenerationJob"]] = relationship("GenerationJob", back_populates="leads")
 
     __table_args__ = (

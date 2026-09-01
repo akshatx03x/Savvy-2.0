@@ -24,7 +24,7 @@ class RawLeadData:
         company_name: str,
         country: str,
         industry: str,
-        full_name: str,
+        full_name: Optional[str] = None,
         domain: Optional[str] = None,
         website: Optional[str] = None,
         region: Optional[str] = None,
@@ -69,16 +69,13 @@ class DeduplicationService:
     Two-Level Deduplication Engine:
     Level 1: Company Deduplication (Domain, Name+Country)
     Level 2: Contact Deduplication (Email, Phone, Name+Company)
+    Supports saving Company-only leads when no individual contact is found.
     """
 
     def __init__(self, db: AsyncSession):
         self.db = db
 
     async def find_or_create_company(self, raw: RawLeadData) -> Tuple[Company, bool]:
-        """
-        Level 1: Company Deduplication
-        Returns (Company, is_new)
-        """
         norm_domain = normalize_domain(raw.domain or raw.website)
         norm_name = normalize_company_name(raw.company_name)
 
@@ -152,11 +149,14 @@ class DeduplicationService:
 
     async def find_or_create_contact(
         self, company: Company, raw: RawLeadData
-    ) -> Tuple[Contact, bool]:
+    ) -> Tuple[Optional[Contact], bool]:
         """
-        Level 2: Contact Deduplication
-        Returns (Contact, is_new)
+        Level 2: Contact Deduplication.
+        Returns (Optional[Contact], is_new). Returns (None, False) if no contact fields exist.
         """
+        if not (raw.full_name or raw.email or raw.phone or raw.job_title):
+            return None, False
+
         norm_email = normalize_email(raw.email)
         norm_phone = normalize_phone(raw.phone)
         f_name, l_name = raw.first_name, raw.last_name
@@ -203,9 +203,10 @@ class DeduplicationService:
                 existing_contact.job_title = raw.job_title
                 updated = True
 
-            # Add source provenance record if new source
+            # Add source provenance record
             provenance = LeadSourceProvenance(
                 contact_id=existing_contact.id,
+                company_id=company.id,
                 source_name=raw.source,
                 source_url=raw.source_url,
                 verification_status=raw.verification_status,
@@ -244,6 +245,7 @@ class DeduplicationService:
         # Add initial source provenance
         provenance = LeadSourceProvenance(
             contact_id=new_contact.id,
+            company_id=company.id,
             source_name=raw.source,
             source_url=raw.source_url,
             verification_status=raw.verification_status,
@@ -258,39 +260,43 @@ class DeduplicationService:
         self, raw: RawLeadData, generation_job_id: Optional[str] = None
     ) -> Tuple[Lead, bool, bool]:
         """
-        Processes a raw lead through the 2-level deduplication engine.
+        Processes a raw lead through the deduplication engine.
         Returns (Lead, is_new_company, is_new_contact)
         """
         company, is_new_company = await self.find_or_create_company(raw)
         contact, is_new_contact = await self.find_or_create_contact(company, raw)
 
-        # Check if Lead record already exists linking this contact
-        stmt = select(Lead).where(Lead.contact_id == contact.id)
+        # Check if Lead record already exists linking this company & contact
+        contact_id_val = contact.id if contact else None
+        if contact_id_val:
+            stmt = select(Lead).where(Lead.contact_id == contact_id_val)
+        else:
+            stmt = select(Lead).where(and_(Lead.company_id == company.id, Lead.contact_id.is_(None)))
+
         res = await self.db.execute(stmt)
         existing_lead = res.scalars().first()
 
         score = calculate_lead_score(
             has_website=bool(company.website),
-            has_email=bool(contact.email),
-            has_phone=bool(contact.phone),
-            has_contact_name=bool(contact.full_name),
-            has_job_title=bool(contact.job_title),
-            verification_status=contact.verification_status,
+            has_email=bool(contact.email if contact else None),
+            has_phone=bool(contact.phone if contact else raw.phone),
+            has_contact_name=bool(contact.full_name if contact else None),
+            has_job_title=bool(contact.job_title if contact else None),
+            verification_status=raw.verification_status,
             is_synthetic=raw.is_synthetic,
         )
 
         if existing_lead:
-            # Update lead score & last_verified_at
             existing_lead.lead_score = max(existing_lead.lead_score, score)
             existing_lead.last_verified_at = datetime.now(timezone.utc)
             self.db.add(existing_lead)
             await self.db.flush()
             return existing_lead, is_new_company, False
 
-        # Create Lead workflow record
+        # Create Lead record
         new_lead = Lead(
             company_id=company.id,
-            contact_id=contact.id,
+            contact_id=contact_id_val,
             country=raw.country,
             region=raw.region or company.region,
             city=raw.city or company.city,
@@ -306,4 +312,17 @@ class DeduplicationService:
         self.db.add(new_lead)
         await self.db.flush()
 
-        return new_lead, is_new_company, True
+        # Save provenance for company-only leads if contact was None
+        if not contact_id_val:
+            prov = LeadSourceProvenance(
+                company_id=company.id,
+                contact_id=None,
+                source_name=raw.source,
+                source_url=raw.source_url,
+                verification_status=raw.verification_status,
+                is_synthetic=raw.is_synthetic,
+            )
+            self.db.add(prov)
+            await self.db.flush()
+
+        return new_lead, is_new_company, (is_new_contact or is_new_company)

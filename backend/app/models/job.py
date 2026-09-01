@@ -29,6 +29,7 @@ class GenerationJob(Base, TimestampMixin):
     
     progress_percentage: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    diagnostic: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
 
     started_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
     completed_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), nullable=True)
@@ -36,8 +37,8 @@ class GenerationJob(Base, TimestampMixin):
     is_synthetic: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False, index=True)
 
     # Relationships
-    leads: Mapped[List["Lead"]] = relationship("Lead", back_populates="generation_job")
-    logs: Mapped[List["JobLog"]] = relationship("JobLog", back_populates="job", cascade="all, delete-orphan")
+    leads: Mapped[List["Lead"]] = relationship("Lead", back_populates="generation_job", lazy="selectin")
+    logs: Mapped[List["JobLog"]] = relationship("JobLog", back_populates="job", cascade="all, delete-orphan", lazy="selectin")
 
 
 class JobLog(Base, TimestampMixin):

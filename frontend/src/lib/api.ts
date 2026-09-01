@@ -120,9 +120,14 @@ export const api = {
     return fetchAPI<ResearchJob>(`/research/jobs/${jobId}/cancel`, { method: 'POST' });
   },
 
-  async getResearchProfileByLeadId(leadId: string): Promise<ResearchProfile> {
-    return fetchAPI<ResearchProfile>(`/research/leads/${leadId}`);
+  async getResearchProfileByLeadId(leadId: string): Promise<ResearchProfile | null> {
+    try {
+      return await fetchAPI<ResearchProfile>(`/research/leads/${leadId}`);
+    } catch (e) {
+      return null;
+    }
   },
+
 
   async refreshLeadResearch(leadId: string, depth: 'basic' | 'standard' | 'deep' = 'standard'): Promise<ResearchJob> {
     return fetchAPI<ResearchJob>(`/research/leads/${leadId}/refresh?depth=${depth}`, { method: 'POST' });
@@ -259,8 +264,30 @@ export const api = {
     return fetchAPI<{ items: Company[]; total: number }>(`/companies?${query.toString()}`);
   },
 
+  // Locations (ISO Country & Region System)
+  async getLocationsCountries(query?: string): Promise<Array<{ code: string; name: string; official_name?: string; iso_code: string }>> {
+    const q = query ? `?q=${encodeURIComponent(query)}` : '';
+    return fetchAPI<Array<{ code: string; name: string; official_name?: string; iso_code: string }>>(`/locations/countries${q}`);
+  },
+
+  async getLocationsRegions(countryCode: string, query?: string): Promise<Array<{ id: string; country_code: string; name: string; code: string }>> {
+    const q = query ? `?q=${encodeURIComponent(query)}` : '';
+    return fetchAPI<Array<{ id: string; country_code: string; name: string; code: string }>>(`/locations/countries/${countryCode}/regions${q}`);
+  },
+
+  async getLocationsCities(countryCode: string, regionCode: string, query?: string): Promise<Array<{ id: string; country_code: string; region_code: string; name: string }>> {
+    const q = query ? `?q=${encodeURIComponent(query)}` : '';
+    return fetchAPI<Array<{ id: string; country_code: string; region_code: string; name: string }>>(`/locations/countries/${countryCode}/regions/${regionCode}/cities${q}`);
+  },
+
+  async getProviderStatuses(): Promise<Array<{ name: string; status: string; enabled: boolean; credentials_present: boolean; last_checked: string; error?: string }>> {
+    return fetchAPI('/providers/status');
+  },
+
   // Stats / Dashboard
   async getDashboardStats(): Promise<DashboardStats> {
     return fetchAPI<DashboardStats>('/stats');
   },
+
 };
+

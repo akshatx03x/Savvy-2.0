@@ -19,7 +19,7 @@ class LeadBase(BaseModel):
 
 class LeadCreate(LeadBase):
     company_id: str
-    contact_id: str
+    contact_id: Optional[str] = None
     generation_job_id: Optional[str] = None
 
 
@@ -32,9 +32,9 @@ class LeadUpdate(BaseModel):
 class LeadResponse(LeadBase):
     id: str
     company_id: str
-    contact_id: str
+    contact_id: Optional[str] = None
     company: CompanyResponse
-    contact: ContactResponse
+    contact: Optional[ContactResponse] = None
     generation_job_id: Optional[str] = None
     last_verified_at: Optional[datetime] = None
     is_synthetic: bool = False

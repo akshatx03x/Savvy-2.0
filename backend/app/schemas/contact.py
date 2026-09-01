@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr
 class ContactBase(BaseModel):
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    full_name: str
+    full_name: Optional[str] = None
     job_title: Optional[str] = None
     email: Optional[str] = None
     phone: Optional[str] = None

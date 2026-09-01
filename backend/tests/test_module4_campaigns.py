@@ -73,8 +73,9 @@ async def test_send_idempotency(db_session):
         status="APPROVED",
     )
     db_session.add(draft)
+    await db_session.flush()
 
-    mb = Mailbox(provider="simulated", email="sender@company.com", daily_send_limit=500, current_usage=0)
+    mb = Mailbox(provider="simulated", email="sender@company.com", connection_status="CONNECTED", daily_send_limit=500, current_usage=0)
     db_session.add(mb)
     await db_session.flush()
 

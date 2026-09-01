@@ -35,6 +35,7 @@ class JobResponse(BaseModel):
     saved_count: int
     progress_percentage: int
     error_message: Optional[str] = None
+    diagnostic: Optional[Dict[str, Any]] = None
     started_at: Optional[datetime] = None
     completed_at: Optional[datetime] = None
     is_synthetic: bool = False

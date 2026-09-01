@@ -17,7 +17,7 @@ class Contact(Base, TimestampMixin):
 
     first_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
     last_name: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
-    full_name: Mapped[str] = mapped_column(String(200), nullable=False, index=True)
+    full_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, index=True)
     
     job_title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True, index=True)
     

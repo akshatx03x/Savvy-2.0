@@ -25,8 +25,9 @@ class SimulatedMailboxAdapter(BaseMailboxProvider):
     async def send_message(
         self, mailbox_info: Dict[str, Any], recipient_email: str, subject: str, body: str, preview_text: Optional[str] = None
     ) -> SendResult:
-        if not settings.ENABLE_SYNTHETIC_DATA:
+        if not settings.ENABLE_SYNTHETIC_DATA and settings.ENVIRONMENT == "production":
             return SendResult(success=False, error_message="Synthetic sending disabled in production mode")
+
 
         msg_id = f"sim_msg_{uuid.uuid4().hex[:12]}"
         return SendResult(success=True, provider_message_id=msg_id)

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.campaign import Campaign, CampaignRecipient, CampaignMessage
 from app.models.contact import Contact
 from app.models.mailbox import Mailbox
+from app.models.lead import Lead
 from app.models.outreach import OutreachDraft
 from app.models.suppression import SuppressionEntry
 from app.mailboxes.registry import mailbox_registry
@@ -52,12 +53,15 @@ class SendingEngine:
         # 3. Approved Outreach Draft Check
         stmt_draft = (
             select(OutreachDraft)
-            .where(OutreachDraft.lead_id.in_(
-                select(Contact.id).where(Contact.id == contact.id)
-            ))
+            .where(
+                (OutreachDraft.contact_id == contact.id) |
+                (OutreachDraft.lead_id.in_(select(Lead.id).where(Lead.contact_id == contact.id)))
+            )
             .where(OutreachDraft.status == "APPROVED")
             .order_by(OutreachDraft.updated_at.desc())
         )
+
+
         res_draft = await db.execute(stmt_draft)
         draft = res_draft.scalars().first()
 

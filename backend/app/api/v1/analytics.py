@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.schemas.analytics import GlobalAnalyticsResponse
-from app.services.analytics_service import AnalyticsService
+from app.services.deliverability_service import AnalyticsService
 
 router = APIRouter(prefix="/analytics", tags=["Unified SaaS Analytics"])
 

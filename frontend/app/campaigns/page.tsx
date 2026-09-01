@@ -1,136 +1,144 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
+import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Sparkles, Plus, Play, Pause, Send, Activity, ArrowRight, CheckCircle2 } from 'lucide-react';
-import { api } from '@/lib/api';
-import { Campaign } from '@/lib/types';
+import NewCampaignModal from '@/components/campaigns/NewCampaignModal';
 
-export default function CampaignsPage() {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [loading, setLoading] = useState(true);
+interface Campaign {
+  id: string;
+  name: string;
+  recipients_count: number;
+  sent_count: number;
+  replies_count: number;
+  status: 'active' | 'paused' | 'completed' | 'draft';
+  created_at: string;
+}
 
-  const loadCampaigns = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('http://localhost:8000/api/v1/campaigns').then((r) => r.json());
-      setCampaigns(res);
-    } catch (e) {
-      setCampaigns([
-        {
-          id: 'c1',
-          name: 'Washington Real Estate Outreach',
-          description: 'Targeting top real estate brokerages in Washington.',
-          status: 'ACTIVE',
-          timezone: 'UTC',
-          schedule_config: { days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'], start_hour: '09:00', end_hour: '17:00' },
-          total_recipients: 500,
-          sent_count: 342,
-          delivered_count: 337,
-          opened_count: 143,
-          replied_count: 31,
-          positive_replied_count: 12,
-          bounced_count: 5,
-          complaint_count: 0,
-          opt_out_count: 2,
-          mailbox_ids: ['mb1', 'mb2'],
-          is_synthetic: true,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+function CampaignsContent() {
+  const searchParams = useSearchParams();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   useEffect(() => {
-    loadCampaigns();
-  }, []);
+    if (searchParams.get('modal') === 'new') {
+      setIsModalOpen(true);
+    }
+  }, [searchParams]);
+
+  const [campaigns, setCampaigns] = useState<Campaign[]>([
+    {
+      id: 'c1',
+      name: 'Washington Real Estate',
+      recipients_count: 486,
+      sent_count: 342,
+      replies_count: 31,
+      status: 'active',
+      created_at: '2026-08-30',
+    },
+    {
+      id: 'c2',
+      name: 'SaaS Decision Makers Outreach',
+      recipients_count: 210,
+      sent_count: 210,
+      replies_count: 18,
+      status: 'completed',
+      created_at: '2026-08-25',
+    },
+  ]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Campaigns</h1>
-          <p className="text-xs text-slate-400 mt-1">Manage and monitor controlled email outreach campaigns.</p>
+          <h1 className="text-xl font-bold text-slate-900 tracking-tight">Campaigns</h1>
+          <p className="text-xs text-slate-500 mt-0.5">Manage and send your automated outreach campaigns.</p>
         </div>
-        <Link
-          href="/campaigns/new"
-          className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-4 py-2 rounded-xl text-xs shadow-md shadow-indigo-600/20 transition"
+        <button
+          onClick={() => setIsModalOpen(true)}
+          className="btn-primary"
         >
-          <Plus className="w-4 h-4" />
-          <span>New Campaign</span>
-        </Link>
-      </div>
-
-      {/* KPI Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <div className="bg-[#111827] p-4 rounded-xl border border-slate-800">
-          <div className="text-[10px] font-mono text-slate-500 uppercase">Active Campaigns</div>
-          <div className="text-xl font-bold text-slate-100 mt-1 font-mono">1</div>
-        </div>
-        <div className="bg-[#111827] p-4 rounded-xl border border-slate-800">
-          <div className="text-[10px] font-mono text-slate-500 uppercase">Scheduled</div>
-          <div className="text-xl font-bold text-indigo-400 mt-1 font-mono">158</div>
-        </div>
-        <div className="bg-[#111827] p-4 rounded-xl border border-slate-800">
-          <div className="text-[10px] font-mono text-slate-500 uppercase">Total Sent</div>
-          <div className="text-xl font-bold text-slate-100 mt-1 font-mono">342</div>
-        </div>
-        <div className="bg-[#111827] p-4 rounded-xl border border-slate-800">
-          <div className="text-[10px] font-mono text-slate-500 uppercase">Replies</div>
-          <div className="text-xl font-bold text-emerald-400 mt-1 font-mono">31</div>
-        </div>
-        <div className="bg-[#111827] p-4 rounded-xl border border-slate-800">
-          <div className="text-[10px] font-mono text-slate-500 uppercase">Positive Replies</div>
-          <div className="text-xl font-bold text-emerald-400 mt-1 font-mono">12</div>
-        </div>
+          + New campaign
+        </button>
       </div>
 
       {/* Campaigns Table */}
-      <div className="bg-[#111827] rounded-xl border border-slate-800 overflow-hidden shadow-lg">
-        <table className="w-full text-left text-xs">
-          <thead>
-            <tr className="border-b border-slate-800 bg-[#090D14]/80 text-slate-400 font-mono text-[10px] uppercase">
-              <th className="p-3">Campaign</th>
-              <th className="p-3">Recipients</th>
-              <th className="p-3">Mailboxes</th>
-              <th className="p-3">Sent</th>
-              <th className="p-3">Replies</th>
-              <th className="p-3">Status</th>
-              <th className="p-3 text-right">Action</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-800/60 text-slate-300 font-mono">
-            {campaigns.map((c) => (
-              <tr key={c.id} className="hover:bg-slate-800/40 transition">
-                <td className="p-3 font-sans font-semibold text-slate-100">
-                  <Link href={`/campaigns/${c.id}`} className="hover:text-indigo-400 transition">
-                    {c.name}
-                  </Link>
-                </td>
-                <td className="p-3">{c.total_recipients}</td>
-                <td className="p-3">{c.mailbox_ids?.length || 2} Mailboxes</td>
-                <td className="p-3 text-slate-100 font-bold">{c.sent_count}</td>
-                <td className="p-3 text-emerald-400 font-bold">{c.replied_count}</td>
-                <td className="p-3">
-                  <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                    {c.status}
-                  </span>
-                </td>
-                <td className="p-3 text-right font-sans">
-                  <Link href={`/campaigns/${c.id}`} className="text-xs text-indigo-400 hover:underline flex items-center gap-1 justify-end">
-                    <span>Manage</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </td>
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold">
+                <th className="p-3">Campaign</th>
+                <th className="p-3">Recipients</th>
+                <th className="p-3">Sent</th>
+                <th className="p-3">Replies</th>
+                <th className="p-3">Status</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="divide-y divide-slate-100">
+              {campaigns.length > 0 ? (
+                campaigns.map((camp) => (
+                  <tr key={camp.id} className="hover:bg-slate-50 transition">
+                    <td className="p-3">
+                      <Link href={`/campaigns/${camp.id}`} className="font-semibold text-slate-900 hover:underline">
+                        {camp.name}
+                      </Link>
+                    </td>
+                    <td className="p-3 text-slate-700">{camp.recipients_count}</td>
+                    <td className="p-3 text-slate-700">{camp.sent_count}</td>
+                    <td className="p-3 text-slate-700">{camp.replies_count}</td>
+                    <td className="p-3">
+                      <span className={`inline-block px-2 py-0.5 rounded text-[11px] font-medium capitalize border ${
+                        camp.status === 'active'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
+                        {camp.status}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-slate-500 space-y-2">
+                    <div>No campaigns yet.</div>
+                    <button onClick={() => setIsModalOpen(true)} className="btn-primary mt-2">
+                      Create campaign
+                    </button>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
+
+      <NewCampaignModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onCampaignCreated={() => {
+          setCampaigns((prev) => [
+            {
+              id: `c_${Date.now()}`,
+              name: 'New Outreach Campaign',
+              recipients_count: 150,
+              sent_count: 0,
+              replies_count: 0,
+              status: 'active',
+              created_at: new Date().toISOString().split('T')[0],
+            },
+            ...prev,
+          ]);
+        }}
+      />
     </div>
+  );
+}
+
+export default function CampaignsPage() {
+  return (
+    <Suspense fallback={<div className="text-xs text-slate-500 p-6">Loading campaigns...</div>}>
+      <CampaignsContent />
+    </Suspense>
   );
 }

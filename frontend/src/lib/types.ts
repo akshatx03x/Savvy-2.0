@@ -73,9 +73,9 @@ export interface LeadSourceProvenance {
 export interface Lead {
   id: string;
   company_id: string;
-  contact_id: string;
+  contact_id?: string | null;
   company: Company;
-  contact: Contact;
+  contact?: Contact | null;
   country: string;
   region?: string | null;
   city?: string | null;

@@ -2,28 +2,11 @@
 
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import {
-  Sparkles,
-  Users,
-  Building2,
-  CheckCircle2,
-  Activity,
-  ArrowRight,
-  Globe,
-  Award,
-  Search,
-  Brain,
-  TrendingUp,
-  Send,
-} from 'lucide-react';
 import { api } from '@/lib/api';
 import { DashboardStats } from '@/lib/types';
 
-export default function Dashboard() {
-  const router = useRouter();
+export default function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [prompt, setPrompt] = useState('');
 
   useEffect(() => {
     async function loadStats() {
@@ -31,26 +14,22 @@ export default function Dashboard() {
         const data = await api.getDashboardStats();
         setStats(data);
       } catch (e) {
+        // Real missing stats fallback to 0
         setStats({
-          total_leads: 1240,
-          unique_leads: 1240,
-          leads_generated_today: 350,
-          total_companies: 820,
-          total_contacts: 1240,
-          generation_jobs_count: 5,
-          avg_quality_score: 88.4,
-          researched_leads_count: 620,
-          research_coverage_pct: 50.0,
-          high_intelligence_count: 480,
-          outreach_ready_count: 420,
-          drafts_generated_count: 310,
-          approved_drafts_count: 280,
-          top_countries: [
-            { country: 'United States', code: 'US', lead_count: 820, company_count: 510, avg_score: 91.2, percentage: 66.1 },
-            { country: 'United Kingdom', code: 'UK', lead_count: 240, company_count: 170, avg_score: 86.5, percentage: 19.3 },
-            { country: 'Canada', code: 'CA', lead_count: 120, company_count: 90, avg_score: 84.1, percentage: 9.7 },
-            { country: 'Australia', code: 'AU', lead_count: 60, company_count: 50, avg_score: 87.0, percentage: 4.8 },
-          ],
+          total_leads: 0,
+          unique_leads: 0,
+          leads_generated_today: 0,
+          total_companies: 0,
+          total_contacts: 0,
+          generation_jobs_count: 0,
+          avg_quality_score: 0,
+          researched_leads_count: 0,
+          research_coverage_pct: 0,
+          high_intelligence_count: 0,
+          outreach_ready_count: 0,
+          drafts_generated_count: 0,
+          approved_drafts_count: 0,
+          top_countries: [],
           recent_jobs: [],
         });
       }
@@ -58,112 +37,116 @@ export default function Dashboard() {
     loadStats();
   }, []);
 
-  const handleAISearchSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
-    router.push(`/find-leads?prompt=${encodeURIComponent(prompt)}`);
-  };
-
   return (
-    <div className="space-y-8 max-w-7xl mx-auto">
+    <div className="space-y-8 max-w-6xl mx-auto">
       {/* Top Greeting */}
       <div>
-        <h1 className="text-2xl font-bold text-slate-100 tracking-tight">Good evening</h1>
-        <p className="text-xs text-slate-400 mt-1">Discover leads, analyze intelligence, and write personalized outreach.</p>
+        <h1 className="text-xl font-bold text-slate-900 tracking-tight">Good morning, Akshat</h1>
+        <p className="text-xs text-slate-500 mt-1">What do you want to do?</p>
       </div>
 
-      {/* Main KPI Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-[#111827] p-5 rounded-xl border border-slate-800/80 shadow-sm relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Total Leads</span>
-            <Users className="w-4 h-4 text-indigo-400" />
+      {/* 3 Core Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        {/* Card 1: Find Leads */}
+        <div className="p-6 bg-white border border-slate-200 rounded-lg shadow-xs flex flex-col justify-between hover:border-slate-400 transition">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Find leads</h2>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Find new prospects based on your target customer.
+            </p>
           </div>
-          <div className="text-2xl font-bold text-slate-100 mt-2 font-mono">
-            {stats ? stats.total_leads.toLocaleString() : '—'}
-          </div>
-          <div className="text-[11px] text-emerald-400 mt-1 font-mono">
-            +100% Verified
-          </div>
-        </div>
-
-        <div className="bg-[#111827] p-5 rounded-xl border border-slate-800/80 shadow-sm relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Research Coverage</span>
-            <Brain className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-2xl font-bold text-slate-100 mt-2 font-mono">
-            {stats?.research_coverage_pct || 50.0}%
-          </div>
-          <div className="text-[11px] text-slate-400 mt-1 font-mono">
-            {stats?.researched_leads_count || 620} leads researched
-          </div>
-        </div>
-
-        <div className="bg-[#111827] p-5 rounded-xl border border-slate-800/80 shadow-sm relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Approved Outreach</span>
-            <Send className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl font-bold text-slate-100 mt-2 font-mono">
-            {stats?.approved_drafts_count || 280}
-          </div>
-          <div className="text-[11px] text-emerald-400 mt-1 font-mono">
-            Ready for Module 4 Sending
-          </div>
-        </div>
-
-        <div className="bg-[#111827] p-5 rounded-xl border border-slate-800/80 shadow-sm relative overflow-hidden group hover:border-slate-700 transition">
-          <div className="flex items-center justify-between text-slate-400 text-xs font-medium">
-            <span>Avg Quality Score</span>
-            <Award className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-2xl font-bold text-slate-100 mt-2 font-mono">
-            {stats ? `${stats.avg_quality_score}/100` : '—'}
-          </div>
-          <div className="text-[11px] text-indigo-400 mt-1">Signal-based rating</div>
-        </div>
-      </div>
-
-      {/* Hero ✨ AI Prospect Search Box */}
-      <div className="bg-gradient-to-r from-indigo-950/40 via-[#111827] to-slate-900/60 p-6 rounded-2xl border border-indigo-500/30 shadow-xl relative overflow-hidden">
-        <div className="flex items-center gap-2 text-indigo-400 text-xs font-mono font-semibold uppercase tracking-wider mb-2">
-          <Sparkles className="w-4 h-4" />
-          <span>AI Prospect Search</span>
-        </div>
-        <h2 className="text-lg font-semibold text-slate-100">Tell us what kind of leads you need</h2>
-        <p className="text-xs text-slate-400 mt-1 mb-4">
-          Natural language AI search parses your query into validated criteria before running real-time discovery.
-        </p>
-
-        <form onSubmit={handleAISearchSubmit} className="relative">
-          <textarea
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder='e.g. "Find 500 real estate businesses in Washington with active websites and public business contact information."'
-            rows={3}
-            className="w-full bg-[#090D14]/90 border border-slate-700/80 rounded-xl p-4 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500/30 transition resize-none shadow-inner"
-          />
-          <div className="flex items-center justify-between mt-3">
-            <div className="flex items-center gap-2 text-xs text-slate-400">
-              <span className="text-[11px] bg-slate-800 px-2 py-1 rounded text-slate-300 font-mono">Suggestion:</span>
-              <button
-                type="button"
-                onClick={() => setPrompt("Find 500 real estate businesses in Washington with active websites and public business contact information.")}
-                className="hover:text-indigo-400 transition underline text-[11px]"
-              >
-                500 Real Estate in Washington
-              </button>
-            </div>
-            <button
-              type="submit"
-              className="flex items-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium px-5 py-2 rounded-lg text-xs shadow-md shadow-indigo-600/30 transition"
+          <div className="mt-6">
+            <Link
+              href="/leads?modal=find"
+              className="inline-block bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-md text-xs font-medium transition"
             >
-              <span>Analyze Search</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
+              Find leads
+            </Link>
           </div>
-        </form>
+        </div>
+
+        {/* Card 2: Write Emails */}
+        <div className="p-6 bg-white border border-slate-200 rounded-lg shadow-xs flex flex-col justify-between hover:border-slate-400 transition">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Write emails</h2>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Create personalized emails from your researched leads.
+            </p>
+          </div>
+          <div className="mt-6">
+            <Link
+              href="/leads"
+              className="inline-block bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-md text-xs font-medium transition"
+            >
+              Write emails
+            </Link>
+          </div>
+        </div>
+
+        {/* Card 3: Send Campaign */}
+        <div className="p-6 bg-white border border-slate-200 rounded-lg shadow-xs flex flex-col justify-between hover:border-slate-400 transition">
+          <div>
+            <h2 className="text-sm font-semibold text-slate-900">Send campaign</h2>
+            <p className="text-xs text-slate-500 mt-1.5 leading-relaxed">
+              Review and send approved emails.
+            </p>
+          </div>
+          <div className="mt-6">
+            <Link
+              href="/campaigns?modal=new"
+              className="inline-block bg-slate-900 hover:bg-black text-white px-4 py-2 rounded-md text-xs font-medium transition"
+            >
+              Send campaign
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 Main Metrics */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="p-4 bg-white border border-slate-200 rounded-lg">
+          <div className="text-xs text-slate-500 font-medium">Leads</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">
+            {stats ? stats.total_leads.toLocaleString() : 0}
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200 rounded-lg">
+          <div className="text-xs text-slate-500 font-medium">Researched</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">
+            {stats?.researched_leads_count ? stats.researched_leads_count.toLocaleString() : 0}
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200 rounded-lg">
+          <div className="text-xs text-slate-500 font-medium">Emails ready</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">
+            {stats?.approved_drafts_count ? stats.approved_drafts_count.toLocaleString() : 0}
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border border-slate-200 rounded-lg">
+          <div className="text-xs text-slate-500 font-medium">Replies</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">0</div>
+        </div>
+      </div>
+
+      {/* Recent Activity */}
+      <div className="p-5 bg-white border border-slate-200 rounded-lg space-y-3">
+        <h3 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Recent activity</h3>
+        {stats && stats.recent_jobs && stats.recent_jobs.length > 0 ? (
+          <div className="space-y-2">
+            {stats.recent_jobs.slice(0, 5).map((job: any) => (
+              <div key={job.id} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-100 last:border-0">
+                <span className="text-slate-800 font-medium">{job.name}</span>
+                <span className="text-slate-500 text-[11px]">{job.created_leads_count || 0} leads found</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-slate-400 italic py-2">No activity yet.</div>
+        )}
+
       </div>
     </div>
   );

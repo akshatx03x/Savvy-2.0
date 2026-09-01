@@ -1,71 +1,42 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
-import { Search, Sparkles, Activity, Plus } from 'lucide-react';
-import { api } from '@/lib/api';
-import { GenerationJob } from '@/lib/types';
+import { usePathname } from 'next/navigation';
+import { Search, Plus } from 'lucide-react';
 
 export default function Header() {
-  const [activeJobs, setActiveJobs] = useState<GenerationJob[]>([]);
+  const pathname = usePathname();
 
-  useEffect(() => {
-    const checkJobs = async () => {
-      try {
-        const jobs = await api.getJobs();
-        const running = jobs.filter((j) => ['QUEUED', 'PLANNING', 'SEARCHING', 'PROCESSING', 'DEDUPLICATING', 'SAVING'].includes(j.status));
-        setActiveJobs(running);
-      } catch (e) {
-        // Silent catch if offline
-      }
-    };
-    checkJobs();
-    const interval = setInterval(checkJobs, 4000);
-    return () => clearInterval(interval);
-  }, []);
+  let title = 'Home';
+  if (pathname.startsWith('/leads')) title = 'Leads';
+  else if (pathname.startsWith('/campaigns')) title = 'Campaigns';
+  else if (pathname.startsWith('/settings')) title = 'Settings';
 
   return (
-    <header className="h-16 bg-[#090D14]/90 backdrop-blur border-b border-slate-800/80 px-6 flex items-center justify-between sticky top-0 z-20">
-      {/* Search Input */}
-      <div className="flex items-center gap-3 w-96">
-        <div className="relative w-full">
-          <Search className="w-4 h-4 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2" />
+    <header className="h-16 bg-white border-b border-slate-200 px-6 flex items-center justify-between sticky top-0 z-20">
+      {/* Title */}
+      <h1 className="text-sm font-semibold text-slate-900 tracking-tight">{title}</h1>
+
+      {/* Global Search & Actions */}
+      <div className="flex items-center gap-4">
+        <div className="relative w-72">
+          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
-            placeholder="Search leads, companies, domains..."
-            className="w-full bg-slate-900/80 border border-slate-800 rounded-lg pl-9 pr-4 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30 transition"
+            placeholder="Search leads, companies or email..."
+            className="w-full bg-slate-50 border border-slate-200 rounded-md pl-9 pr-3 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-slate-900 transition"
           />
         </div>
-      </div>
 
-      {/* Right Controls */}
-      <div className="flex items-center gap-4">
-        {/* Active Jobs Pill */}
-        {activeJobs.length > 0 && (
-          <Link
-            href="/jobs"
-            className="flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 text-xs font-mono animate-pulse hover:bg-indigo-500/20 transition"
-          >
-            <Activity className="w-3.5 h-3.5" />
-            <span>{activeJobs.length} Job Running</span>
-          </Link>
-        )}
-
-        {/* Quick Launch Button */}
+        {/* Quick Lead Find CTA button */}
         <Link
-          href="/find-leads"
-          className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-medium shadow-md shadow-indigo-600/20 transition"
+          href="/leads?modal=find"
+          className="flex items-center gap-1.5 bg-slate-900 hover:bg-black text-white px-3.5 py-1.5 rounded-md text-xs font-medium transition"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Find Leads</span>
+          <span>Find leads</span>
         </Link>
-
-        {/* Profile Avatar Placeholder */}
-        <div className="flex items-center gap-2.5 pl-3 border-l border-slate-800/80">
-          <div className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-slate-300">
-            A
-          </div>
-        </div>
       </div>
     </header>
   );
